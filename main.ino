@@ -12,13 +12,16 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&serial);
 int fingerId;
 String nameId = "";
 
+//Leds
+const int l_green = 10, l_red = 9;
+
 void setup() {
   //Debug
   Serial.begin(9600);
   
   //Display
   lcd.begin(16, 2);
-  WriteOnLcd(0, 0, "Benvenuto");
+  lcd.print("Benvenuto");
 
   //Fingerprint
   finger.begin(57600);
@@ -26,10 +29,41 @@ void setup() {
     Serial.println("Found fingerprint sensor");
   } else {
     Serial.println("Fingerprint sensor not found :/");
-    ClearScreenLcd();
-    WriteOnLcd(0, 0, "Error");
+    lcd.clear();
+    lcd.print("Error");
     while(1) { delay(1); }
   }
+
+  //Leds
+  pinMode(l_green, OUTPUT);
+  pinMode(l_red, OUTPUT);
+}
+
+//Read fingerprint
+int ReadFinger() {
+  uint8_t p = finger.getImage();
+  if(p != FINGERPRINT_OK) { return -1; }
+  p = finger.image2Tz();
+  if(p != FINGERPRINT_OK) { return -1; }
+  p = finger.fingerFastSearch();
+  if(p != FINGERPRINT_OK) { return -2; }
+  return finger.fingerID;
+}
+
+void onSuccess() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Benvenuto");
+  lcd.setCursor(0, 1);
+  lcd.print(nameId);
+  if(nameId == "Sconosciuto") {
+    digitalWrite(l_red, HIGH);
+  } else {
+    digitalWrite(l_green, HIGH);
+  }
+  delay(1000);
+  digitalWrite(l_red, LOW);
+  digitalWrite(l_green, LOW);
 }
 
 void loop() {
@@ -45,28 +79,11 @@ void loop() {
       nameId = "Sconosciuto";
       break;
   }
-  Serial.println(nameId);
-  ClearScreenLcd();
-  WriteOnLcd(0, 0, "Benvenuto");
-  WriteOnLcd(1, 0, nameId);
-  delay(100);
-}
-
-int ReadFinger() {
-  uint8_t p = finger.getImage();
-  if(p != FINGERPRINT_OK) { return -1; }
-  p = finger.image2Tz();
-  if(p != FINGERPRINT_OK) { return -1; }
-  p = finger.fingerFastSearch();
-  if(p != FINGERPRINT_OK) { return -1; }
-  return finger.fingerID;
-}
-
-void ClearScreenLcd() {
+  if(fingerId != -1) {
+    onSuccess();
+  }
   lcd.clear();
-}
-
-void WriteOnLcd(int row, int col, String text) {
-  lcd.setCursor(col, row);
-  lcd.print(text);
+  lcd.setCursor(0, 0);
+  lcd.print("Benvenuto");
+  delay(100);
 }
